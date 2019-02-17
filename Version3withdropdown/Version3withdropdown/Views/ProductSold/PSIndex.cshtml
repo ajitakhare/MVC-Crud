@@ -1,0 +1,219 @@
+﻿
+@{
+    ViewBag.Title = "PSIndex";
+}
+
+<h2>Sales</h2>
+
+<button class="btn btn-info" data-bind="click :ShowAdd">Add Product Sold</button>
+
+<hr />
+
+<table class="table table-striped table-hover table-bordered">
+    <thead>
+        <tr>
+            <th>Customer Name</th>
+            <th>Product Name</th>
+            <th>Store Name</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody data-bind="foreach: ProductSolds">
+        <tr>
+            <td data-bind="text: Customer"></td>
+            <td data-bind="text: Product"></td>
+            <td data-bind="text: Store"></td>
+            <td>
+                <button class="btn btn-success" data-bind="click:$root.showEditModal"> Edit </button>
+                <button class="btn btn-danger" data-bind="click:$root.Delete"> Delete </button>
+            </td>
+        </tr>
+
+    </tbody>
+</table>
+
+<div id="myModal" class="modal fade" role="dialog">
+    <div class="modal-dialog" data-bind="with : SelectedProductsold">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Add or Edit Product Sold</h4>
+            </div>
+            <form>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Select Customer</label>
+                        <select class="form-control" data-bind="options : $parent.Customers, optionsText : 'CustomerName', value : $parent.SelectedCustomer"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Product</label>
+                        <select class="form-control" data-bind="options : $parent.Products, optionsText : 'ProductName', value : $parent.SelectedProduct"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Select Store</label>
+                        <select class="form-control" data-bind="options : $parent.Stores, optionsText : 'StoreName', value : $parent.SelectedStore"></select>
+                    </div>
+                
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" data-dismiss="modal" data-bind="click : $parent.SaveProductSold">Save</button>
+                    <button type="button" class="btn btn-success" data-dismiss="modal" data-bind="click : $parent.UpdateProductSold">Update</button>
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                </div>
+            </form>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+    var newSale = {};
+    function ProductSold(data) {
+        var self = this;
+        self.PSId = data.PSId || 0;
+        self.Customer = ko.observable(data.Customer) || ko.observable();
+        self.CustomerId = ko.observable(data.CustomerId) || ko.observable();
+        self.Store = ko.observable(data.Store) || ko.observable();
+        self.StoreId = ko.observable(data.StoreId) || ko.observable();
+        self.Product = ko.observable(data.Product) || ko.observable();
+        self.ProductId = ko.observable(data.ProductId) || ko.observable();
+       
+    }
+
+    function ViewModel() {
+        var self = this;
+        self.ProductSolds = ko.observableArray();
+        self.SelectedProductsold = ko.observable();
+        self.Customers = ko.observableArray();
+        self.SelectedCustomer = ko.observable();
+        self.Products = ko.observableArray();
+        self.SelectedProduct = ko.observable();
+        self.Stores = ko.observableArray();
+        self.SelectedStore = ko.observable();
+
+        self.showEditModal = function (data) {
+            self.SelectedProductsold(data);
+            var cus = ko.utils.arrayFirst(self.Customers(), function (item) {
+                return item.CId == data.CustomerId();
+            });
+            self.SelectedCustomer(cus);
+            var pro = ko.utils.arrayFirst(self.Products(), function (item) {
+                return item.PId == data.ProductId();
+            });
+            self.SelectedCustomer(pro);
+            var sto = ko.utils.arrayFirst(self.Stores(), function (item) {
+                return item.SId == data.StoreId();
+            });
+            self.SelectedCustomer(sto);
+            debugger;
+            $('#myModal').modal('show');
+        }
+        self.ShowAdd = function () {
+            self.SelectedProductsold(new ProductSold(newSale));
+            $('#myModal').modal('show');
+        };
+        self.SaveProductSold = function (data) {
+            var customerId = self.SelectedCustomer().CId;
+            var productId = self.SelectedProduct().PId;
+            var storeId = self.SelectedStore().SId;
+            debugger;
+                $.ajax({
+                url: '/ProductSold/AddProductSold',
+                type: 'POST',
+                data: { customerId, productId, storeId},
+                dataType: 'json',
+                success: function (data) {
+                    alert("Saved Successfully");
+                    location.reload();
+                }
+            });
+        }
+        self.UpdateProductSold = function (data) {
+            var PSId = data.PSId;
+            var customerId = self.SelectedCustomer().CId;
+            var productId = self.SelectedProduct().PId;
+            var storeId = self.SelectedStore().SId;
+            debugger;
+            $.ajax({
+                url: '/ProductSold/UpdateProductSold/'+PSId,
+                type: 'POST',
+                data: { customerId, productId, storeId },
+                datatype: 'json',
+                success: function (data) {
+                    alert("Saved Successfully");
+                    location.reload();
+                }
+            });
+        }
+        self.Delete = function (data) {
+            var id = data.PSId;
+            debugger
+            if (confirm('Are you sure to Delete this ?')) {
+                    $.ajax({
+                    url: '/ProductSold/RemoveProductSold/' + id,
+                    type: 'GET',
+                    data: 'json',
+                    success: function (data) {
+                        alert("Record Deleted ");
+                        location.reload();
+                    }
+
+                });
+            }
+        }
+        getProductSolds();
+        getCustomers();
+        getProducts();
+        getStores();
+        function getProductSolds() {
+            $.ajax({
+                url: '/ProductSold/GetAllProductsold',
+                type: 'GET',
+                dataType: 'json',
+                success: function (response) {
+                    response.forEach(function (item) {
+                        self.ProductSolds.push(new ProductSold(item));
+                    });
+
+                }
+            });
+        }
+        function getCustomers() {
+            $.ajax({
+                url: '/Customer/GetAllCustomers',
+                type: 'GET',
+                dataType: 'json',
+                success: function (response) {
+
+                    self.Customers(response);
+                }
+            });
+        }
+        function getProducts() {
+            $.ajax({
+                url: '/Product/GetAllProducts',
+                type: 'GET',
+                dataType: 'json',
+                success: function (response) {
+                    self.Products(response);
+                }
+            });
+        }
+        function getStores() {
+            $.ajax({
+                url: '/Store/GetAllStores',
+                type: 'GET',
+                dataType: 'json',
+                success: function (response) {
+                    debugger;
+                    self.Stores(response);
+                }
+            });
+        }
+    }
+    $(document).ready(function () {
+        ko.applyBindings(new ViewModel());
+    });
+</script>
